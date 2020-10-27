@@ -137,7 +137,7 @@ full %>%
   ggplot(aes(BsmtFinSF1)) +
   geom_boxplot(aes(color = MSZoning)) 
   
-https://github.com/Amin-RStudio/Sales-Prices/issues/1#issue-730426625
+![unnamed-chunk-15-1](https://user-images.githubusercontent.com/69797305/97306009-1f890d00-185e-11eb-844f-dbde0e8dd73b.png)
 
 full %>% 
   group_by(MSZoning) %>% 
