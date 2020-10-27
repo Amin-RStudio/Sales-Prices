@@ -1,0 +1,525 @@
+---
+title: "Code and visuals"
+author: "I"
+date: "27 10 2020"
+output: html_document
+---
+#Solving the Kaggle HousePrice Challenge
+
+Required Librarys 
+```{r}
+#Einlesen
+library(rio)
+library(caret)
+library(tidyverse)
+library(stats)
+train<-import("train (1).csv")
+test<-import("test (1).csv")
+```
+
+Tibbles are more convinient to use, so we will convert them into tibbles
+```{r}
+#as.tibble
+train<-as_tibble(train)
+test<-as_tibble(test)
+options(dplyr.width=Inf,dplyr.print_min=10)
+dim(test)
+dim(train)
+```
+
+#Bind the two dataset for efficient workflow
+#Checking NA´s
+```{r}
+full<-bind_rows(train,test)
+dim(full)
+#NA´S checken
+sapply(full, function(x) sum(is.na(x)))
+```
+The dataset has lots of NA Values, so we will fix that first 
+
+Starting to fill the NA´s with medium, mean, Mode, predictions etc.
+```{r}
+#Pool Quality 
+full<-full %>% 
+  replace_na(list(PoolQC="Nb"))
+full %>% 
+  filter(PoolQC != "Nb") %>% 
+  select(PoolQC)
+full$PoolQC <- as.factor(full$PoolQC)
+```
+
+
+```{r}
+#Fence auffüllen
+full<-full %>% 
+  replace_na(list(Fence="Nb"))
+full %>% 
+  filter(Fence!="Nb") %>% 
+  select(Fence)
+full$Fence <- as.factor(full$Fence)
+```
+
+
+```{r}
+#MiacFeature
+full<-full %>% 
+  replace_na(list(MiscFeature = "Nb"))
+full$MiscFeature <- as.factor(full$MiscFeature)
+```
+
+
+```{r}
+#FirePlaceQu
+full<-full %>% 
+  replace_na(list(FireplaceQu = "Nb"))
+full$FireplaceQu <- as.factor(full$FireplaceQu)
+```
+
+
+```{r}
+#Alley
+full<-full %>% 
+  replace_na(list(Alley="Nb"))
+full$Alley <- as.factor(full$Alley)
+```
+
+
+```{r}
+#LotFrontage
+mean(full$LotFrontage,na.rm = T)
+full<-full %>% 
+  replace_na(list(LotFrontage = median(full$LotFrontage,na.rm = T)))
+```
+
+
+```{r}
+#Utilities
+full<-full %>% 
+  replace_na(list(Utilities = "AllPub"))
+full$Utilities <- as.factor(full$Utilities) 
+```
+
+```{r}
+#BsmtQual
+full<- full %>% 
+  replace_na(list(BsmtQual = "Nb"))
+full$BsmtQual <- as.factor(full$BsmtQual)
+```
+
+
+```{r}
+#BsmtCond 
+full<- full %>% 
+  replace_na(list(BsmtCond = "Nb"))
+full$BsmtCond <- as.factor(full$BsmtCond)
+```
+
+
+```{r}
+#BsmtExposure 
+full<- full %>% 
+  replace_na(list(BsmtExposure = "Nb"))
+full$BsmtExposure <- as.factor(full$BsmtExposure)
+```
+
+
+```{r}
+#BsmtFinType1
+full<- full %>% 
+  replace_na(list(BsmtFinType1 = "Nb"))
+full$BsmtFinType1 <- as.factor(full$BsmtFinType1)
+```
+
+
+```{r}
+#BsmtFinSF1 
+full %>% 
+  ggplot(aes(BsmtFinSF1)) +
+  geom_boxplot(aes(color = MSZoning)) 
+
+full %>% 
+  group_by(MSZoning) %>% 
+  summarise(median(BsmtFinSF1, na.rm = T))
+
+full <- full %>% 
+  replace_na(list(BsmtFinSF1 = 104))
+```
+
+
+```{r}
+#Masonry veneer type
+full %>% 
+  filter(is.na(MasVnrType))
+full %>%
+  ggplot(aes(MSZoning , fill = MasVnrType)) +
+  geom_bar() +
+  facet_wrap(~MasVnrType)
+full<- full %>% 
+  replace_na(list(MasVnrType = "None" ))
+full$MasVnrType <- as.factor(full$MasVnrType)
+```
+
+
+```{r}
+#Masonry veneer area in square feet
+full %>% 
+  filter(is.na(MasVnrArea))
+full %>%
+  ggplot(aes(MasVnrArea , fill = MSZoning)) +
+  geom_histogram() +
+  facet_wrap(~MSZoning)
+full<- full %>% 
+  replace_na(list(MasVnrArea = 0))
+
+```
+
+
+```{r}
+#BsmtFinType2
+full$BsmtFinType2
+full %>%
+  ggplot(aes(BsmtFinType2)) +
+  geom_bar() +
+  facet_wrap(~MSZoning)
+full <- full %>% 
+  replace_na(list(BsmtFinType2 = "Unf"))
+full$BsmtFinType2 <- as.factor(full$BsmtFinType2)
+
+```
+
+
+```{r}
+#Exterior1st   
+full %>% 
+  filter(is.na(Exterior1st))
+ggplot(full, aes(YearRemodAdd , fill = Exterior1st)) +
+  geom_histogram() +
+  facet_wrap("Exterior1st")
+full %>% 
+  filter(Id  == 1916 )
+full<- full %>% 
+  replace_na(list(Exterior1st = "VinylSd"))
+full$Exterior1st <- as.factor(full$Exterior1st)
+```
+
+
+
+```{r}
+#Exterior2st
+full %>% 
+  filter(is.na(Exterior2nd))
+ggplot(full, aes(Exterior1st , fill = Exterior2nd)) +
+  geom_bar() +
+  facet_wrap("Exterior2nd")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+full<- full %>% 
+  replace_na(list(Exterior2nd = "VinylSd"))
+full$Exterior2nd <- as.factor(full$Exterior2nd)
+```
+
+
+```{r}
+#BsmtFinSF2     
+full$BsmtFinSF2
+full %>% 
+  filter(is.na(BsmtFinSF2))
+ggplot(full, aes(BsmtFinSF2, fill = BsmtFinType2))+
+  geom_histogram()
+full<- full %>% 
+  replace_na(list(BsmtFinSF2 = 0))
+```
+
+```{r}
+#MSZoning   
+ggplot(full, aes(MSSubClass, fill = MSZoning )) +
+  geom_histogram() +
+  facet_wrap(~MSZoning)
+full %>% 
+  filter(is.na(MSZoning))
+full$MSZoning[c(2217,2905)] <- "RL"
+full$MSZoning[(c(1916, 2251))] <- "RM"
+full$MSZoning<- as.factor(full$MSZoning)
+```
+
+
+```{r}
+#nur NA´s
+na.cols <- which(colSums(is.na(full)) > 0)
+sort(colSums(sapply(full[na.cols], is.na)), decreasing = TRUE)
+#Tabelle mit allen werten
+sapply(full, function(x) sum(is.na(x)))
+```
+
+
+```{r}
+#BsmtUnfSF
+ggplot(data = full, aes(x = BsmtFinType2, y = BsmtUnfSF)) +
+  geom_boxplot()
+
+#which one 
+full %>% 
+  filter(is.na(BsmtUnfSF))
+full %>% 
+  filter(BsmtFinType2 == "Unf") %>% 
+  select(BsmtUnfSF) %>% 
+  summary(mean())
+full <- full %>% 
+  replace_na(list(BsmtUnfSF = 525))
+```
+
+
+```{r}
+#GarageYrBlt
+full %>% 
+  group_by(GarageYrBlt) %>% 
+  count(GarageYrBlt)
+ggplot(data = full, aes( x = GarageQual, y = GarageYrBlt)) +
+  geom_boxplot()
+full %>% 
+  filter(is.na(GarageYrBlt))
+```
+
+```{r}
+#TotalBsmtSF
+full %>% 
+  filter(is.na(TotalBsmtSF))
+ggplot(full, aes(x = TotalBsmtSF)) +
+  geom_bar() +
+  coord_cartesian(xlim = c(0,2500), ylim =c(0, 40))
+ggplot(full, aes(x = TotalBsmtSF, y = MSZoning)) +
+  geom_boxplot() +
+  coord_flip()
+median(full$TotalBsmtSF, na.rm = T)
+full <- full %>% 
+  replace_na(list(TotalBsmtSF = 989.5))
+```
+
+
+```{r}
+#BsmtFullBath  
+full %>% 
+  filter(is.na(BsmtFullBath))
+ggplot(full, aes(MasVnrArea, TotalBsmtSF)) +
+  geom_point(aes(color = BsmtFullBath))
+mean(full$BsmtFullBath, na.rm = T)
+full[is.na("BsmtFullBath") , "MSZoning" == "RM" ]
+full$BsmtFullBath[2121] <- 1
+full$BsmtFullBath[2189] <- 0
+typeof(full$BsmtFullBath)
+```
+
+
+```{r}
+#Electrical
+full$Electrical
+ggplot(full, aes(MSSubClass, MSZoning , color = Electrical)) +
+  geom_boxplot() +
+  coord_flip() +
+  facet_wrap(~Electrical)
+full %>% 
+  filter(is.na(Electrical))
+full <- full %>% 
+  replace_na(list(Electrical = "FuseP"))
+full$Electrical <- as.factor(full$Electrical)
+```
+
+
+```{r}
+#BsmtHalfBath      
+full %>% 
+  filter(is.na(BsmtHalfBath))
+ggplot(full, aes(BsmtFullBath , color = BsmtHalfBath)) +
+  geom_histogram()
+full$BsmtHalfBath
+full <- full %>% 
+  replace_na(list(BsmtHalfBath = 0))
+typeof(full$BsmtHalfBath)
+```
+
+
+```{r}
+#KitchenQual  
+full$KitchenQual
+ggplot(full, aes(KitchenQual)) +
+  geom_bar()
+full %>% 
+  filter(is.na(KitchenQual))
+ggplot(full, aes(x = MSSubClass , y = MSZoning  , fill = KitchenQual)) +
+  geom_boxplot() +
+  coord_flip() +
+  facet_wrap(~ MSZoning ) 
+full <- full %>% 
+  replace_na(list(KitchenQual = "TA"))
+full$KitchenQual <- as.factor(full$KitchenQual)
+```
+
+
+```{r}
+#SaleType 
+ggplot(data = full, aes(x = SaleType )) +
+  geom_bar()
+full <- full %>% 
+  replace_na(list(SaleType = "WD"))
+full$SaleType <- as.factor(full$SaleType)
+
+```
+
+```{r}
+#Functional
+full %>% 
+  filter(is.na(Functional))
+ggplot(full, aes(x = MSZoning, fill  = Functional)) +
+  geom_bar()
+full %>% 
+  group_by(Functional) %>% 
+  count()
+full <- full %>% 
+  replace_na(list(Functional = "Typ"))
+full$Functional
+full$Functional <- as.factor(full$Functional)
+```
+
+
+```{r}
+#GarageType
+full %>% 
+  filter(is.na(GarageType))
+ggplot(full, aes(GarageYrBlt,  fill = GarageType )) +
+  geom_histogram()
+full$GarageType <- replace(full$GarageType, is.na(full$GarageType) & full$GarageYrBlt <= 1950, "Detchd")
+full <- full %>% 
+  replace_na(list(GarageType = "Attchd"))
+full$GarageType <- as.factor(full$GarageType)
+```
+
+```{r}
+#GarageYrBlt 
+ggplot(full, aes( GarageType, fill = GarageYrBlt)) +
+  geom_bar()
+full %>% 
+  arrange((desc(GarageYrBlt))) %>% 
+  select(GarageYrBlt)
+```
+
+```{r}
+#Replacing 2207
+full$GarageYrBlt <- replace(full$GarageYrBlt, full$GarageYrBlt == 2207, 2007)
+full$MSZoning
+full %>% 
+  filter(MSZoning == "RM") %>% 
+  summarise(median(GarageYrBlt,na.rm = T))
+ggplot(full, aes(MSZoning, GarageYrBlt)) +
+  geom_boxplot()
+full$GarageYrBlt <- replace(full$GarageYrBlt, is.na(full$GarageYrBlt) & full$MSZoning=="FV", 2005)
+full$GarageYrBlt <- replace(full$GarageYrBlt, is.na(full$GarageYrBlt) & full$MSZoning=="C (all)", 1940)
+full$GarageYrBlt <- replace(full$GarageYrBlt, is.na(full$GarageYrBlt) & full$MSZoning=="RH", 1961)
+full$GarageYrBlt <- replace(full$GarageYrBlt, is.na(full$GarageYrBlt) & full$MSZoning=="RL", 1981)
+full$GarageYrBlt <- replace(full$GarageYrBlt, is.na(full$GarageYrBlt) & full$MSZoning=="RM", 1959)
+
+```
+
+
+```{r}
+#GarageArea
+ggplot(full, aes(GarageYrBlt, GarageArea))+
+  geom_point()
+full$GarageArea
+m <- lm(GarageArea ~ GarageYrBlt, data = full)
+a<- data.frame(predict(m, full))
+full %>% 
+  filter(is.na(GarageArea)) %>% 
+  select(GarageArea, Id)
+a <- a %>% 
+  mutate(n = 1:2919)
+colnames(a) <- "x"
+head(a)
+a %>% 
+  filter(n == 2577) 
+full <- full %>% 
+  replace_na(list(GarageArea = 389.9279))
+
+```
+
+
+```{r}
+#GarageFinish    
+ggplot(full, aes( GarageYrBlt, fill = GarageFinish)) +
+  geom_histogram()
+ggplot(full, aes( GarageYrBlt, YearBuilt  , fill = GarageFinish)) +
+  geom_boxplot()
+full$GarageFinish <- replace(full$GarageFinish, is.na(full$GarageFinish) & full$GarageType == "2Types", "Unf")
+full$GarageFinish <- replace(full$GarageFinish, is.na(full$GarageFinish) & full$GarageType == "CarPort", "Unf")
+full$GarageFinish <- replace(full$GarageFinish, is.na(full$GarageFinish) & full$GarageType == "Detchd", "Unf")
+full$GarageFinish <- replace(full$GarageFinish, is.na(full$GarageFinish) & full$GarageType == "Basment", "Unf")
+full$GarageFinish <- replace(full$GarageFinish, is.na(full$GarageFinish) & full$GarageType == "Builtln", "Fin")
+full$GarageFinish <- replace(full$GarageFinish, is.na(full$GarageFinish) & full$GarageType == "Attchd", "Fin")
+full$GarageFinish <- as.factor(full$GarageFinish)
+```
+
+
+```{r}
+#GarageCars
+ggplot(full, aes(GarageArea, fill = as.factor(GarageCars), color = I("black")))+
+  geom_histogram() +
+  coord_cartesian(c(1000, 2000))
+
+full$GarageCars <- replace(full$GarageCars, is.na(full$GarageCars) & full$GarageArea == 0, 0)
+full$GarageCars <- replace(full$GarageCars, is.na(full$GarageCars) & full$GarageArea > 0 & full$GarageArea < 380 , 1)
+full$GarageCars <- replace(full$GarageCars, is.na(full$GarageCars) & full$GarageArea > 380 & full$GarageArea < 700 , 2)
+full$GarageCars <- replace(full$GarageCars, is.na(full$GarageCars) & full$GarageArea > 700 & full$GarageArea < 1250 , 3)
+full$GarageCars <- replace(full$GarageCars, is.na(full$GarageCars) & full$GarageArea > 1250, 4)
+
+```
+
+
+```{r}
+#GarageQual 
+ggplot(full, aes(x = GarageFinish, fill = GarageQual)) +
+  geom_bar()
+full <- full %>% 
+  replace_na(list(GarageQual = "TA"))
+full$GarageQual <-as.factor(full$GarageQual) 
+```
+
+
+```{r}
+#GarageCond
+ggplot(full, aes(x = GarageQual, fill = GarageCond)) +
+  geom_bar()
+full$GarageCond <- replace(full$GarageCond, is.na(full$GarageCond) & full$GarageQual == "TA", "TA")
+full$GarageCond <- replace(full$GarageCond, is.na(full$GarageCond) & full$GarageQual == "PO", "PO")
+full$GarageCond <- replace(full$GarageCond, is.na(full$GarageCond) & full$GarageQual == "Gd", "TA")
+full$GarageCond <- replace(full$GarageCond, is.na(full$GarageCond) & full$GarageQual == "Fa", "TA")
+full$GarageCond <- as.factor(full$GarageCond)
+```
+
+
+```{r}
+#Splitt full
+training <- full %>% 
+  slice(1:1460)
+dim(full)
+dim(test)    
+testing <- full %>% 
+  slice(1461:2919)
+dim(testing)
+```
+
+
+```{r}
+#ModelFit
+library(caret)
+modelFit <- train(SalePrice ~ ., method = "rf", data = training)
+predtest <- predict(modelFit, testing)
+```
+
+
+```{r}
+#Output in data frame
+output.df<-data.frame(testing$Id)
+output.df$SalePrice <- predtest
+colnames(output.df) <- c("Id", "SalePrice")
+write.csv(output.df,file="SolutionFaktorisiert.csv", row.names=FALSE)
+
+```
+
