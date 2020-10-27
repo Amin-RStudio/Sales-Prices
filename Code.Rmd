@@ -136,6 +136,8 @@ full$BsmtFinType1 <- as.factor(full$BsmtFinType1)
 full %>% 
   ggplot(aes(BsmtFinSF1)) +
   geom_boxplot(aes(color = MSZoning)) 
+  
+https://github.com/Amin-RStudio/Sales-Prices/issues/1#issue-730426625
 
 full %>% 
   group_by(MSZoning) %>% 
